@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#6C5CE7">
+	
+    <title>Azab E-Wallet</title>
+    
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+        <!-- ✅ Favicon -->
+    <link rel="icon" type="image/png" href="https://upload.wikimedia.org/wikipedia/commons/a/a1/Wallet_App_icon_iOS_12.png">
+    <link rel="apple-touch-icon" href="https://upload.wikimedia.org/wikipedia/commons/a/a1/Wallet_App_icon_iOS_12.png">
+    <link rel="shortcut icon" href="https://upload.wikimedia.org/wikipedia/commons/a/a1/Wallet_App_icon_iOS_12.png">
+
+	
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- html2pdf -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ========== 🔒 LOGIN SCREEN ========== -->
+<div class="login-screen" id="loginScreen">
+    <div class="login-box">
+        <div class="login-logo">
+            <i class="fa-solid fa-wallet"></i>
+        </div>
+        <h2>محفظة عزب</h2>
+        <p>أدخل كلمة المرور للوصول إلى محفظتك</p>
+        
+        <form id="loginForm" onsubmit="handleLogin(event)">
+            <div class="login-input-wrap">
+                <i class="fa-solid fa-lock"></i>
+                <input type="password" class="login-input" id="loginPass" 
+                       placeholder="كلمة المرور" autocomplete="current-password" required>
+            </div>
+            
+            <div class="login-remember">
+                <input type="checkbox" id="rememberMe">
+                <label for="rememberMe">تذكرني على هذا الجهاز</label>
+            </div>
+            
+            <button type="submit" class="login-btn" id="loginBtn">
+                <i class="fa-solid fa-right-to-bracket"></i> دخول
+            </button>
+            
+            <div class="login-error" id="loginError"></div>
+        </form>
+    </div>
+</div>
+
+<!-- ========== CONNECTION STATUS ========== -->
+<div class="conn-status hidden" id="connStatus"></div>
+
+<!-- ========== MAIN APP ========== -->
+<div class="app" id="mainApp">
+
+    <!-- ===== الشاشة 1: الرئيسية ===== -->
+    <div id="scrHome" class="screen active">
+        <div class="header" style="position:relative;">
+            <div class="header-title">
+                <p id="greetText">مرحباً 👋</p>
+                <h1>محمد عزب</h1>
+            </div>
+            <div class="header-actions">
+                <button class="icon-btn" id="privBtn" onclick="togglePrivacy()" title="إخفاء الأرصدة">
+                    <i class="fa-solid fa-eye"></i>
+                </button>
+                <button class="icon-btn" onclick="loadData()" title="تحديث">
+                    <i class="fa-solid fa-arrows-rotate"></i>
+                </button>
+                <div class="avatar" onclick="toggleLogoutMenu()">م</div>
+            </div>
+            
+            <!-- Logout Menu -->
+            <div class="logout-menu" id="logoutMenu">
+                <button onclick="loadData(); toggleLogoutMenu();">
+                    <i class="fa-solid fa-arrows-rotate"></i> تحديث البيانات
+                </button>
+                <button class="danger-item" onclick="handleLogout()">
+                    <i class="fa-solid fa-right-from-bracket"></i> تسجيل الخروج
+                </button>
+            </div>
+        </div>
+
+        <div class="balance-card">
+            <div class="b-label">الرصيد الإجمالي</div>
+            <div class="b-amount" id="homeBalance">0 EGP</div>
+            <div class="account-switcher">
+                <button class="acc-btn active" onclick="setAccFilter('all',this)">الكل</button>
+                <button class="acc-btn" onclick="setAccFilter('شخصي',this)">💰 الشخصي</button>
+                <button class="acc-btn" onclick="setAccFilter('شركة',this)">🏢 الشركة</button>
+            </div>
+        </div>
+
+        <div class="quick-stats">
+            <div class="q-stat income">
+                <div class="q-icon"><i class="fa-solid fa-arrow-down"></i></div>
+                <div class="q-info"><p>الدخل</p><h3 id="homeIncome">0</h3></div>
+            </div>
+            <div class="q-stat expense">
+                <div class="q-icon"><i class="fa-solid fa-arrow-up"></i></div>
+                <div class="q-info"><p>المصروفات</p><h3 id="homeExpense">0</h3></div>
+            </div>
+        </div>
+
+        <div class="section">
+            <div class="section-head">
+                <h3>آخر العمليات</h3>
+                <span class="link" onclick="goTo('scrTxns',1)">عرض الكل</span>
+            </div>
+            <div id="homeTxnList">
+                <div class="loader"><div class="spinner"></div><p style="font-size:13px;color:var(--text-light)">جاري التحميل...</p></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== الشاشة 2: المعاملات ===== -->
+    <div id="scrTxns" class="screen">
+        <div class="header"><div class="header-title"><h1>المعاملات</h1></div></div>
+        <div class="filters" id="txnFilters">
+            <button class="f-btn active" onclick="setTxnFilter('all',this)">الكل</button>
+            <button class="f-btn" onclick="setTxnFilter('دخول',this)">💰 الدخل</button>
+            <button class="f-btn" onclick="setTxnFilter('خروج',this)">📤 المصروفات</button>
+            <button class="f-btn" onclick="setTxnFilter('تحويل',this)">🔄 التحويلات</button>
+        </div>
+        <div class="section" style="margin-top:10px;">
+            <div id="allTxnList"></div>
+        </div>
+    </div>
+
+    <!-- ===== الشاشة 3: السلف ===== -->
+    <div id="scrDebts" class="screen">
+        <div class="header">
+            <div class="header-title"><h1>السلف والتمويل</h1></div>
+            <button class="icon-btn" onclick="openModal('modalDebt')"><i class="fa-solid fa-plus"></i></button>
+        </div>
+        <div class="tab-group">
+            <button class="tab-btn active" onclick="setDebtFilter('all',this)">الكل</button>
+            <button class="tab-btn" onclick="setDebtFilter('سلفة',this)">💰 سلف</button>
+            <button class="tab-btn" onclick="setDebtFilter('تمويل',this)">📈 تمويل</button>
+        </div>
+        <div style="padding:5px 20px 20px;" id="debtList"></div>
+    </div>
+
+    <!-- ===== الشاشة 4: التقارير ===== -->
+    <div id="scrReports" class="screen">
+        <div class="header">
+            <div class="header-title"><h1>التقارير</h1></div>
+            <button class="icon-btn" onclick="goTo('scrExport')"><i class="fa-solid fa-download"></i></button>
+        </div>
+        <div class="summary-grid">
+            <div class="sum-card sc-personal"><div class="s-icon"><i class="fa-solid fa-wallet"></i></div><div class="s-value" id="rPersonal">0</div><div class="s-label">رصيد الشخصي</div></div>
+            <div class="sum-card sc-company"><div class="s-icon"><i class="fa-solid fa-building"></i></div><div class="s-value" id="rCompany">0</div><div class="s-label">رصيد الشركة</div></div>
+            <div class="sum-card sc-debts"><div class="s-icon"><i class="fa-solid fa-hand-holding-dollar"></i></div><div class="s-value" id="rDebts">0</div><div class="s-label">ديون متبقية</div></div>
+            <div class="sum-card sc-net"><div class="s-icon"><i class="fa-solid fa-scale-balanced"></i></div><div class="s-value" id="rNet">0</div><div class="s-label">الصافي</div></div>
+        </div>
+        <div class="chart-box">
+            <div class="chart-head"><h3>المصروفات بالتصنيف</h3><select class="month-select" id="rptMonth" onchange="buildCharts()"><option value="all">كل الشهور</option></select></div>
+            <canvas id="chartDoughnut"></canvas>
+        </div>
+        <div class="chart-box">
+            <div class="chart-head"><h3>الدخل مقابل المصروفات</h3></div>
+            <canvas id="chartBar"></canvas>
+        </div>
+        <div class="section">
+            <div class="section-head"><h3>تفصيلة المصروفات</h3></div>
+            <div id="expBreakdown"></div>
+        </div>
+    </div>
+
+    <!-- ===== الشاشة 5: التصدير ===== -->
+    <div id="scrExport" class="screen">
+        <div class="header">
+            <div class="header-title"><h1>📄 تصدير التقارير</h1></div>
+            <button class="icon-btn" onclick="goTo('scrReports',3)"><i class="fa-solid fa-arrow-right"></i></button>
+        </div>
+        <div style="padding:0 20px;"><p style="color:var(--text-light);font-size:13px;margin-bottom:10px;">اختر الحساب والفترة ثم نوع التقرير</p></div>
+        <div class="exp-filter-row">
+            <button class="f-btn active" onclick="setExpAcc('all',this)">الكل</button>
+            <button class="f-btn" onclick="setExpAcc('شخصي',this)">💰 الشخصي</button>
+            <button class="f-btn" onclick="setExpAcc('شركة',this)">🏢 الشركة</button>
+        </div>
+        <div class="exp-filter-row">
+            <button class="f-btn active" onclick="setExpPeriod('all',this)">كل الفترات</button>
+            <button class="f-btn" onclick="setExpPeriod('month',this)">الشهر الحالي</button>
+            <button class="f-btn" onclick="setExpPeriod('3months',this)">آخر 3 شهور</button>
+        </div>
+        <div class="export-grid">
+            <div class="exp-card" onclick="exportPDF('full')"><div class="exp-ico pdf"><i class="fa-solid fa-file-pdf"></i></div><div class="exp-text"><h4>تقرير شامل PDF</h4><p>معاملات + أرصدة + سلف + مصروفات</p></div></div>
+            <div class="exp-card" onclick="exportPDF('transactions')"><div class="exp-ico pdf"><i class="fa-solid fa-list"></i></div><div class="exp-text"><h4>كشف حساب PDF</h4><p>جميع المعاملات مفصلة</p></div></div>
+            <div class="exp-card" onclick="exportPDF('debts')"><div class="exp-ico debts-ico"><i class="fa-solid fa-handshake"></i></div><div class="exp-text"><h4>تقرير السلف PDF</h4><p>كل السلف والتمويل والمتبقي</p></div></div>
+            <div class="exp-card" onclick="exportCSV()"><div class="exp-ico excel"><i class="fa-solid fa-file-excel"></i></div><div class="exp-text"><h4>تصدير Excel</h4><p>ملف CSV يفتح في Excel</p></div></div>
+        </div>
+    </div>
+</div>
+
+<!-- ========== MODALS ========== -->
+
+<!-- مودال إضافة معاملة -->
+<div class="modal-bg" id="modalTxn">
+    <div class="modal-box">
+        <div class="modal-head"><h3>إضافة عملية</h3><button class="close-btn" onclick="closeModal('modalTxn')"><i class="fa-solid fa-xmark"></i></button></div>
+        <form id="frmTxn" onsubmit="saveTxn(event)">
+            <div class="fg"><label>نوع العملية</label><select class="fi" id="txnType" onchange="updateCats()" required><option value="دخول">💰 دخول</option><option value="خروج">📤 خروج</option><option value="تحويل">🔄 تحويل</option></select></div>
+            <div class="f-row"><div class="fg"><label>الحساب</label><select class="fi" id="txnAcc" required><option value="شخصي">💰 شخصي</option><option value="شركة">🏢 شركة</option></select></div><div class="fg"><label>التصنيف</label><select class="fi" id="txnCat" required></select></div></div>
+            <div class="f-row"><div class="fg"><label>الطرف الآخر</label><input type="text" class="fi" id="txnPerson" placeholder="اسم الشخص أو المنصة" required></div><div class="fg"><label>المبلغ (EGP)</label><input type="number" class="fi" id="txnAmount" placeholder="0" step="0.01" required></div></div>
+            <div class="fg"><label>ملاحظات (اختياري)</label><input type="text" class="fi" id="txnNotes" placeholder="أي تفاصيل إضافية..."></div>
+            <button type="submit" class="btn-main" id="btnSaveTxn"><i class="fa-solid fa-check"></i> حفظ العملية</button>
+        </form>
+    </div>
+</div>
+
+<!-- مودال إضافة سلفة -->
+<div class="modal-bg" id="modalDebt">
+    <div class="modal-box">
+        <div class="modal-head"><h3>سلفة / تمويل جديد</h3><button class="close-btn" onclick="closeModal('modalDebt')"><i class="fa-solid fa-xmark"></i></button></div>
+        <form id="frmDebt" onsubmit="saveDebt(event)">
+            <div class="f-row"><div class="fg"><label>النوع</label><select class="fi" id="debtType" required><option value="سلفة">💰 سلفة</option><option value="تمويل">📈 تمويل</option></select></div><div class="fg"><label>الحساب</label><select class="fi" id="debtAcc" required><option value="شخصي">شخصي</option><option value="شركة">شركة</option></select></div></div>
+            <div class="fg"><label>اسم الشخص / الجهة</label><input type="text" class="fi" id="debtPerson" placeholder="مثال: أحمد محمود" required></div>
+            <div class="f-row"><div class="fg"><label>المبلغ (EGP)</label><input type="number" class="fi" id="debtAmount" placeholder="0" step="0.01" required></div><div class="fg"><label>النسبة %</label><input type="number" class="fi" id="debtPct" placeholder="0" value="0" step="0.1"></div></div>
+            <div class="fg"><label>ملاحظات</label><input type="text" class="fi" id="debtNotes" placeholder="اختياري..."></div>ذ
+            <button type="submit" class="btn-main"><i class="fa-solid fa-solid fa-check"></i> حفظ</button>
+        </form>
+    </div>
+</div>
+
+<!-- مودال سداد -->
+<div class="modal-bg" id="modalPay">
+    <div class="modal-box">
+        <div class="modal-head"><h3>💸 سداد مبلغ</h3><button class="close-btn" onclick="closeModal('modalPay')"><i class="fa-solid fa-xmark"></i></button></div>
+        <form onsubmit="submitPay(event)">
+            <input type="hidden" id="payId">
+            <div class="fg"><label>المبلغ المراد سداده</label><input type="number" class="fi" id="payVal" step="0.01" required></div>
+            <button type="submit" class="btn-main"><i class="fa-solid fa-money-bill-wave"></i> تأكيد السداد</button>
+        </form>
+    </div>
+</div>
+
+<!-- Bottom Navigation -->
+<div class="bottom-nav" id="bottomNav">
+    <button class="nav-btn active" id="nav0" onclick="goTo('scrHome',0)"><i class="fa-solid fa-house"></i><span>الرئيسية</span></button>
+    <button class="nav-btn" id="nav1" onclick="goTo('scrTxns',1)"><i class="fa-solid fa-list"></i><span>المعاملات</span></button>
+    <button class="nav-btn fab-btn" onclick="openModal('modalTxn')"><i class="fa-solid fa-plus"></i></button>
+    <button class="nav-btn" id="nav2" onclick="goTo('scrDebts',2)"><i class="fa-solid fa-handshake"></i><span>السلف</span></button>
+    <button class="nav-btn" id="nav3" onclick="goTo('scrReports',3)"><i class="fa-solid fa-chart-pie"></i><span>التقارير</span></button>
+</div>
+
+<!-- Toast -->
+<div class="toast-msg" id="toast"></div>
+
+<!-- PDF Template -->
+<div id="pdfArea"></div>
+
+<!-- App JavaScript -->
+<script src="app.js"></script>
+
+</body>
+</html>
